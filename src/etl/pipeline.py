@@ -7,8 +7,8 @@ from .log_reader import LogReader
 from .processors import ActionRegistry, build_default_registry
 from .storage import CSVStorageManager
 
-# Por defecto en esta tarea, solo procesamos reseteos de ADManager
-DEFAULT_ENABLED_ACTIONS = ["resetuser"]
+# Acciones reportadas por las dos partes de la tarea.
+DEFAULT_ENABLED_ACTIONS = ["resetuser", "register_user"]
 
 
 def run_pipeline(

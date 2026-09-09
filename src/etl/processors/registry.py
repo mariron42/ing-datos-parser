@@ -2,6 +2,7 @@
 
 from .admanager import ADManagerResetUserProcessor
 from .base import BaseActionProcessor
+from .sap import SAPRegisterUserProcessor
 
 
 class ActionRegistry:
@@ -45,4 +46,5 @@ def build_default_registry() -> ActionRegistry:
     """
     registry = ActionRegistry()
     registry.register(ADManagerResetUserProcessor())
+    registry.register(SAPRegisterUserProcessor())
     return registry

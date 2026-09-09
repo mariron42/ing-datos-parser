@@ -46,6 +46,22 @@ def test_el_registro_por_defecto_trae_admanager_resetuser():
     assert records[0]["sistema"] == "ADManager"
 
 
+def test_el_registro_por_defecto_procesa_el_alta_sap():
+    registry = build_default_registry()
+    operations = {
+        "bbb2": operacion(
+            "GET http://bot/v2/sap/register_user?requester_username=a&target_employee_id=1"
+            '&treatment=señor&job=Cajero "HTTP/1.1" 500'
+        )
+    }
+
+    records = registry.process_operations(operations)
+
+    assert len(records) == 1
+    assert records[0]["acción"] == "register_user"
+    assert records[0]["sistema"] == "SAP"
+
+
 def test_se_puede_registrar_un_sistema_nuevo_sin_tocar_el_motor():
     registry = ActionRegistry()
     registry.register(FakeSAPProcessor())

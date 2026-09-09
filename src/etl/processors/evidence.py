@@ -57,7 +57,7 @@ def extract_evidence(lines: list[dict]) -> Evidence:
                 users = data["UsersList"]
                 # Los logs identifican explicitamente el usuario buscado en filter.
                 match = re.search(
-                    r"\((?:sAMAccountName|EMPLOYEE_ID)(?::equal:|=)([^)]+)\)", query, re.I
+                    r"\((?:sAMAccountName|employee_?id)(?::equal:|=)([^)]+)\)", query, re.I
                 )
                 searched = normalize(match[1]) if match else None
                 if not users and searched:

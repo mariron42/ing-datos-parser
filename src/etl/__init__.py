@@ -1,7 +1,7 @@
 """Proceso ETL idempotente y extensible para tabla_reporte_bot.csv.
 
 Materia: Ingenieria de Datos - Tarea 1.
-Objetivo: Procesar logs diarios de operaciones de reseteo de contrasenas
+Objetivo: Procesar logs diarios de reseteos de ADManager y altas de SAP,
 y mantener actualizada la tabla final de forma idempotente y extensible.
 
 Modulos:
@@ -27,6 +27,7 @@ from .processors import (
     ActionRegistry,
     ADManagerResetUserProcessor,
     BaseActionProcessor,
+    SAPRegisterUserProcessor,
     build_default_registry,
 )
 from .storage import CSVStorageManager
@@ -38,6 +39,7 @@ __all__ = [
     "LogReader",
     "BaseActionProcessor",
     "ADManagerResetUserProcessor",
+    "SAPRegisterUserProcessor",
     "ActionRegistry",
     "build_default_registry",
     "CSVStorageManager",

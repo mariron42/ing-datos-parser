@@ -1,7 +1,7 @@
 # Ingeniería de Datos: ETL de ADManager
 
 Proceso de terminal para transformar logs diarios del bot en un reporte CSV de
-reseteos de usuarios de ADManager. Implementa las partes 1 y 2 de la tarea:
+reseteos de usuarios de ADManager y altas de usuarios SAP V2. Implementa las partes de la tarea:
 modularización, carga incremental idempotente, reglas de negocio y dependencias
 reproducibles. No utiliza notebooks para ejecutar el proceso.
 
@@ -54,6 +54,9 @@ raíz del proyecto. Ejemplo de crontab (ajustar rutas y hora):
 - `src/etl/processors/evidence.py`: interpreta búsquedas y respuestas de ADManager.
 - `src/etl/processors/results.py`: aplica las reglas de resultado de la parte 2.
 - `src/etl/processors/admanager.py`: construye el registro de reseteo.
+- `src/etl/processors/sap_evidence.py`: interpreta respuestas de SAP y tickets.
+- `src/etl/processors/sap_results.py`: distingue los casos del alta SAP V2.
+- `src/etl/processors/sap.py`: construye el registro del alta SAP.
 - `src/etl/processors/registry.py`: registra estrategias para nuevas acciones.
 - `src/etl/storage.py`: valida el esquema, deduplica y escribe de forma atómica,
   con bloqueo entre procesos.
@@ -86,6 +89,16 @@ valores originales de nombres y oficinas. Si una respuesta falta o no se puede
 interpretar, se registra una advertencia y se explica la incertidumbre: ausencia
 de evidencia no equivale a usuario inexistente. Los mensajes originales de
 ADManager se preservan incluso si contienen números propios del sistema.
+
+Para `/v2/sap/register_user`, el proceso reporta `register_user` sobre `SAP`. Los
+códigos 202 se distinguen comprobando si se creó el ticket; el 208 exige la cadena
+`ya existe` en la respuesta de SAP. Para 400 se validan número de empleado,
+tratamiento y mensajes de puesto; el último caso es el error desconocido por
+descarte. Los códigos 401, 403 y 404 combinan `DESCRIPTION`, `OFFICE`, el puesto
+solicitado y las búsquedas por `sAMAccountName`/`employeeID`. Los conflictos de
+puestos exclusivos de City Club o Soriana, y el alta incompatible de gerente, se
+consolidan como `Conflicto con el puesto solicitado`. Los códigos 500 y 503 se
+traducen a mensajes operativos sin incluir el código de nuestra API.
 
 ## Idempotencia y migración
 
