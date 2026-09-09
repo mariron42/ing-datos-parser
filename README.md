@@ -67,6 +67,10 @@ Para agregar acciones, implementar `BaseActionProcessor`, registrarlo en
 necesita modificar el lector ni el almacenamiento. Si se crean notebooks de
 exploración, deben ir en `notebooks/`.
 
+La explicación detallada de la arquitectura, cada módulo, el flujo completo,
+las reglas y las decisiones de calidad se encuentra en la
+[guía técnica](docs/explicaciones/README.md).
+
 ## Reglas del reporte
 
 El esquema conserva `id`, las diez columnas de la primera parte y `updated_at`.
