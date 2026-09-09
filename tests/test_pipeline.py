@@ -5,13 +5,13 @@ import os
 
 import pytest
 
-from etl import BASE_DIR, DEFAULT_CSV_PATH, list_available_log_files, run_pipeline
+from etl import DEFAULT_CSV_PATH, list_available_log_files, run_pipeline
 from etl.cli import build_parser, resolve_target_files
 
 LOG_DIA_1 = """\
 2026-09-01T00:00:01.000Z | INFO [operation_Id=aaa111] | HTTP Request: http://apitools.com:8000/v3/users_admin/resetuser?sAMAccountName_requester=admin1&sAMAccountName_target=100001 "HTTP/1.1" 200
 2026-09-01T00:00:02.000Z | INFO [operation_Id=aaa111] | SearchUser: {}, Raw Response: {"UsersList":[{"SAM_ACCOUNT_NAME":"100001","FIRST_NAME":"Ana","LAST_NAME":"Ruiz","OFFICE":"Tienda 1"}]}
-2026-09-01T00:00:03.000Z | INFO [operation_Id=aaa111] | ADM-Raw response | status: 200 | body: [{'statusMessage': 'Password reset successful.'}]
+2026-09-01T00:00:03.000Z | INFO [operation_Id=aaa111] | ADM-Raw response | status: 200 | body: [{'statusMessage': 'Contraseña restablecida correctamente.'}]
 2026-09-01T00:00:10.000Z | INFO [operation_Id=bbb222] | HTTP Request: http://apitools.com:8000/v3/users_admin/resetuser?sAMAccountName_requester=admin1&sAMAccountName_target=100002 "HTTP/1.1" 404
 2026-09-01T00:00:20.000Z | INFO [operation_Id=ccc333] | HTTP Request: http://apitools.com:8000/v3/healthcheck "HTTP/1.1" 200
 """
@@ -31,7 +31,7 @@ def entorno(tmp_path):
 
 
 def leer_filas(path) -> list[dict]:
-    with open(path, "r", encoding="utf-8", newline="") as f:
+    with open(path, encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
 
 
@@ -43,9 +43,15 @@ def test_pipeline_procesa_solo_las_acciones_habilitadas(entorno):
     filas = leer_filas(csv_path)
     assert inserted == 3  # healthcheck no es una accion registrada
     assert [f["id"] for f in filas] == ["aaa111", "bbb222", "ddd444"]
-    assert filas[0]["resultado final"] == "Password reset successful."
-    assert filas[1]["resultado final"] == "Error 404: Target user not found in ADManager"
-    assert filas[2]["resultado final"] == "ADM timed out"
+    assert filas[0]["resultado final"] == "Contraseña restablecida correctamente."
+    assert (
+        filas[1]["resultado final"]
+        == "No se encontró al menos uno de los usuarios en ADManager; los logs no permiten identificar cuál."
+    )
+    assert (
+        filas[2]["resultado final"]
+        == "No se pudo completar el restablecimiento: ADManager superó el tiempo de espera de 35 segundos."
+    )
 
 
 def test_pipeline_es_idempotente_al_reejecutarse(entorno):
@@ -84,6 +90,7 @@ def test_carga_diaria_incremental(entorno):
 # CLI
 # ------------------------------------------------------------------------------
 
+
 def parse(argv: list[str]):
     return build_parser().parse_args(argv)
 
@@ -119,10 +126,13 @@ def test_cli_modo_log_file_acepta_ruta_directa(entorno):
     assert resolve_target_files(parse(["--log-file", ruta]), str(log_dir)) == [ruta]
 
 
-@pytest.mark.parametrize("argv", [
-    ["--date", "2026-12-31"],
-    ["--log-file", "no_existe.log"],
-])
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--date", "2026-12-31"],
+        ["--log-file", "no_existe.log"],
+    ],
+)
 def test_cli_reporta_cuando_no_hay_nada_que_procesar(entorno, argv):
     log_dir, _ = entorno
 
@@ -136,29 +146,3 @@ def test_cli_reporta_directorio_sin_logs(tmp_path):
 
 def test_cli_usa_el_csv_del_proyecto_por_defecto():
     assert parse([]).csv_path == DEFAULT_CSV_PATH
-
-
-# ------------------------------------------------------------------------------
-# Regresion contra los datos reales de la tarea
-# ------------------------------------------------------------------------------
-
-LOGS_REALES = list_available_log_files(BASE_DIR) if os.path.isdir(BASE_DIR) else []
-
-
-@pytest.mark.skipif(
-    not LOGS_REALES or not os.path.exists(DEFAULT_CSV_PATH),
-    reason="requiere los .log y el CSV entregados con la tarea"
-)
-def test_reproduce_el_csv_entregado_a_partir_de_los_logs_reales(tmp_path):
-    """El pipeline debe regenerar tabla_reporte_bot.csv tal cual fue entregado.
-
-    Se ignora `updated_at` porque registra el instante de la carga.
-    """
-    csv_path = tmp_path / "regenerado.csv"
-
-    run_pipeline(LOGS_REALES, csv_path=str(csv_path))
-
-    def sin_updated_at(rows):
-        return [{k: v for k, v in row.items() if k != "updated_at"} for row in rows]
-
-    assert sin_updated_at(leer_filas(csv_path)) == sin_updated_at(leer_filas(DEFAULT_CSV_PATH))

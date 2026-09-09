@@ -17,18 +17,19 @@ class ActionRegistry:
     def register(self, processor: BaseActionProcessor):
         self._processors.append(processor)
 
-    def process_operations(self, operations: dict, enabled_actions: list[str] | None = None) -> list[dict]:
+    def process_operations(
+        self, operations: dict, enabled_actions: list[str] | None = None
+    ) -> list[dict]:
         records = []
         for op_id, lines in operations.items():
             if not lines:
                 continue
 
-            first_msg = lines[0]["message"]
             for processor in self._processors:
-                if enabled_actions and processor.action_name not in enabled_actions:
+                if enabled_actions is not None and processor.action_name not in enabled_actions:
                     continue
 
-                if processor.matches(first_msg):
+                if any(processor.matches(line["message"]) for line in lines):
                     record = processor.process_operation(op_id, lines)
                     if record:
                         records.append(record)

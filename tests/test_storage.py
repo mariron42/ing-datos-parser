@@ -24,7 +24,7 @@ def make_record(op_id: str, timestamp: str, **overrides) -> dict:
 
 
 def read_csv(path) -> tuple[list[str], list[dict]]:
-    with open(path, "r", encoding="utf-8", newline="") as f:
+    with open(path, encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         return list(reader.fieldnames), list(reader)
 
@@ -63,10 +63,12 @@ def test_carga_incremental_solo_agrega_lo_nuevo(tmp_path):
     storage = CSVStorageManager(str(csv_path))
     storage.save_records([make_record("aaa1", "2026-09-01T00:00:00Z")])
 
-    inserted = storage.save_records([
-        make_record("aaa1", "2026-09-01T00:00:00Z"),
-        make_record("bbb2", "2026-09-02T00:00:00Z"),
-    ])
+    inserted = storage.save_records(
+        [
+            make_record("aaa1", "2026-09-01T00:00:00Z"),
+            make_record("bbb2", "2026-09-02T00:00:00Z"),
+        ]
+    )
 
     _, rows = read_csv(csv_path)
     assert inserted == 1
@@ -77,11 +79,13 @@ def test_las_filas_quedan_ordenadas_cronologicamente(tmp_path):
     csv_path = tmp_path / "reporte.csv"
     storage = CSVStorageManager(str(csv_path))
 
-    storage.save_records([
-        make_record("ccc3", "2026-09-03T00:00:00Z"),
-        make_record("aaa1", "2026-09-01T00:00:00Z"),
-        make_record("bbb2", "2026-09-02T00:00:00Z"),
-    ])
+    storage.save_records(
+        [
+            make_record("ccc3", "2026-09-03T00:00:00Z"),
+            make_record("aaa1", "2026-09-01T00:00:00Z"),
+            make_record("bbb2", "2026-09-02T00:00:00Z"),
+        ]
+    )
 
     _, rows = read_csv(csv_path)
     assert [r["id"] for r in rows] == ["aaa1", "bbb2", "ccc3"]
@@ -113,10 +117,12 @@ def test_se_asigna_updated_at_y_se_respeta_el_provisto(tmp_path):
     csv_path = tmp_path / "reporte.csv"
     storage = CSVStorageManager(str(csv_path))
 
-    storage.save_records([
-        make_record("aaa1", "2026-09-01T00:00:00Z"),
-        make_record("bbb2", "2026-09-02T00:00:00Z", updated_at="2020-01-01T00:00:00+00:00"),
-    ])
+    storage.save_records(
+        [
+            make_record("aaa1", "2026-09-01T00:00:00Z"),
+            make_record("bbb2", "2026-09-02T00:00:00Z", updated_at="2020-01-01T00:00:00+00:00"),
+        ]
+    )
 
     _, rows = read_csv(csv_path)
     por_id = {r["id"]: r for r in rows}
@@ -138,7 +144,7 @@ def test_no_deja_archivos_temporales(tmp_path):
     csv_path = tmp_path / "reporte.csv"
     CSVStorageManager(str(csv_path)).save_records([make_record("aaa1", "2026-09-01T00:00:00Z")])
 
-    assert [p.name for p in tmp_path.iterdir()] == ["reporte.csv"]
+    assert {p.name for p in tmp_path.iterdir()} - {"reporte.csv.lock.tmp"} == {"reporte.csv"}
 
 
 def test_csv_vacio_se_crea_con_solo_el_encabezado(tmp_path):

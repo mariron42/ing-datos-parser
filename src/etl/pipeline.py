@@ -15,7 +15,7 @@ def run_pipeline(
     log_files: list[str],
     csv_path: str = DEFAULT_CSV_PATH,
     enabled_actions: list[str] | None = None,
-    registry: ActionRegistry | None = None
+    registry: ActionRegistry | None = None,
 ) -> int:
     """Ejecuta el pipeline ETL para una lista de archivos de log de forma secuencial."""
     if registry is None:

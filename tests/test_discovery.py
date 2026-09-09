@@ -22,7 +22,9 @@ def test_extrae_la_fecha_del_nombre_de_archivo():
 def test_lista_solo_logs_y_en_orden_cronologico(tmp_path):
     crear_logs(tmp_path, ["2026-09-01.log", "2026-08-29.log", "2026-08-30.log", "notas.txt"])
 
-    encontrados = [p.rsplit("\\", 1)[-1].rsplit("/", 1)[-1] for p in list_available_log_files(str(tmp_path))]
+    encontrados = [
+        p.rsplit("\\", 1)[-1].rsplit("/", 1)[-1] for p in list_available_log_files(str(tmp_path))
+    ]
 
     assert encontrados == ["2026-08-29.log", "2026-08-30.log", "2026-09-01.log"]
 

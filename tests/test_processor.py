@@ -27,7 +27,7 @@ SEARCH_REQUESTER = (
 ADM_OK = (
     "ADM-Raw response | status: 200 | body: "
     "[{'sAMAccountName': '520000228', 'status': '0', "
-    "'statusMessage': 'Password reset successful.'}]"
+    "'statusMessage': 'Contraseña restablecida correctamente.'}]"
 )
 
 ADM_TIMEOUT = (
@@ -56,12 +56,15 @@ def test_metadatos_del_procesador(processor):
 
 
 def test_operacion_exitosa_completa(tmp_path, processor):
-    lines = build_operation(tmp_path, [
-        REQUEST.format(status=200),
-        SEARCH_REQUESTER,
-        SEARCH_USER,
-        ADM_OK,
-    ])
+    lines = build_operation(
+        tmp_path,
+        [
+            REQUEST.format(status=200),
+            SEARCH_REQUESTER,
+            SEARCH_USER,
+            ADM_OK,
+        ],
+    )
 
     record = processor.process_operation("abc123", lines)
 
@@ -75,7 +78,7 @@ def test_operacion_exitosa_completa(tmp_path, processor):
     assert record["nombre completo del usuario target"] == "Nombre_target Apellido_target"
     assert record["oficina del usuario solicitante"] == "Tienda 520"
     assert record["oficina del usuario target"] == "Tienda 520"
-    assert record["resultado final"] == "Password reset successful."
+    assert record["resultado final"] == "Contraseña restablecida correctamente."
 
 
 def test_timeout_de_admanager_usa_el_campo_reason(tmp_path, processor):
@@ -83,18 +86,36 @@ def test_timeout_de_admanager_usa_el_campo_reason(tmp_path, processor):
 
     record = processor.process_operation("abc123", lines)
 
-    assert record["resultado final"] == "ADM timed out"
+    assert (
+        record["resultado final"]
+        == "No se pudo completar el restablecimiento: ADManager superó el tiempo de espera de 35 segundos."
+    )
 
 
-@pytest.mark.parametrize("status, esperado", [
-    (200, "Password reset successful."),
-    (403, "Error 403: Forbidden (Requester not authorized / Office mismatch)"),
-    (404, "Error 404: Target user not found in ADManager"),
-    (500, "Error 500: Internal Server Error"),
-    (503, "Error 503: Service Unavailable"),
-    (504, "Error 504: Gateway Timeout"),
-    (418, "Error: HTTP 418"),
-])
+@pytest.mark.parametrize(
+    "status, esperado",
+    [
+        (200, "Contraseña restablecida correctamente."),
+        (
+            403,
+            "Restablecimiento no autorizado; los logs no permiten determinar la causa específica.",
+        ),
+        (
+            404,
+            "No se encontró al menos uno de los usuarios en ADManager; los logs no permiten identificar cuál.",
+        ),
+        (500, "Error crítico inesperado en el proceso; requiere revisión técnica."),
+        (
+            503,
+            "No se pudo restablecer la contraseña por un error de ADManager: El mensaje de error de ADManager no está disponible en los logs.",
+        ),
+        (
+            504,
+            "No se pudo completar el restablecimiento: ADManager superó el tiempo de espera de 35 segundos.",
+        ),
+        (418, "No se pudo determinar el resultado con la información disponible."),
+    ],
+)
 def test_resultado_inferido_del_codigo_http(tmp_path, processor, status, esperado):
     """Sin respuesta de ADManager, el resultado se infiere del codigo HTTP."""
     lines = build_operation(tmp_path, [REQUEST.format(status=status)])
@@ -105,13 +126,19 @@ def test_resultado_inferido_del_codigo_http(tmp_path, processor, status, esperad
 
 
 def test_sin_codigo_http_el_resultado_es_desconocido(tmp_path, processor):
-    lines = build_operation(tmp_path, [
-        "HTTP Request: http://apitools.com:8000/v3/users_admin/resetuser?sAMAccountName_requester=a&sAMAccountName_target=b"
-    ])
+    lines = build_operation(
+        tmp_path,
+        [
+            "HTTP Request: http://apitools.com:8000/v3/users_admin/resetuser?sAMAccountName_requester=a&sAMAccountName_target=b"
+        ],
+    )
 
     record = processor.process_operation("abc123", lines)
 
-    assert record["resultado final"] == "Desconocido"
+    assert (
+        record["resultado final"]
+        == "No se pudo determinar el resultado con la información disponible."
+    )
 
 
 def test_usuarios_desconocidos_dejan_nombre_y_oficina_vacios(tmp_path, processor):
@@ -124,15 +151,18 @@ def test_usuarios_desconocidos_dejan_nombre_y_oficina_vacios(tmp_path, processor
 
 
 def test_json_de_searchuser_corrupto_no_rompe_el_procesamiento(tmp_path, processor):
-    lines = build_operation(tmp_path, [
-        REQUEST.format(status=200),
-        "SearchUser: {}, Raw Response: {esto no es json",
-        ADM_OK,
-    ])
+    lines = build_operation(
+        tmp_path,
+        [
+            REQUEST.format(status=200),
+            "SearchUser: {}, Raw Response: {esto no es json",
+            ADM_OK,
+        ],
+    )
 
     record = processor.process_operation("abc123", lines)
 
-    assert record["resultado final"] == "Password reset successful."
+    assert record["resultado final"] == "Contraseña restablecida correctamente."
     assert record["nombre completo del usuario target"] == ""
 
 

@@ -18,7 +18,7 @@ class LogReader:
         operations = {}
         current_op_id = None
 
-        with open(self.log_file_path, "r", encoding="utf-8", errors="replace") as f:
+        with open(self.log_file_path, encoding="utf-8", errors="replace") as f:
             for raw_line in f:
                 line_str = raw_line.rstrip("\r\n")
                 match = self.LINE_PATTERN.match(line_str)
@@ -27,19 +27,18 @@ class LogReader:
                     current_op_id = op_id
                     if op_id not in operations:
                         operations[op_id] = []
-                    operations[op_id].append({
-                        "timestamp": ts,
-                        "level": level,
-                        "message": msg,
-                        "full_line": line_str
-                    })
+                    operations[op_id].append(
+                        {"timestamp": ts, "level": level, "message": msg, "full_line": line_str}
+                    )
                 elif current_op_id and line_str.strip():
                     # Lineas multilineas (p. ej. respuestas JSON o formateos extendidos)
-                    operations[current_op_id].append({
-                        "timestamp": None,
-                        "level": None,
-                        "message": line_str.strip(),
-                        "full_line": line_str.strip()
-                    })
+                    operations[current_op_id].append(
+                        {
+                            "timestamp": None,
+                            "level": None,
+                            "message": line_str.strip(),
+                            "full_line": line_str.strip(),
+                        }
+                    )
 
         return operations

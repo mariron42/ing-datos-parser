@@ -2,18 +2,30 @@
 
 import os
 import re
+from datetime import date
 
 
 def extract_date_from_filename(filename: str) -> str | None:
     """Extrae la fecha en formato YYYY-MM-DD del nombre de archivo."""
     basename = os.path.basename(filename)
     match = re.search(r"(\d{4}-\d{2}-\d{2})", basename)
-    return match.group(1) if match else None
+    if match:
+        try:
+            return date.fromisoformat(match.group(1)).isoformat()
+        except ValueError:
+            return None
+    return None
 
 
 def list_available_log_files(directory: str) -> list[str]:
     """Retorna los archivos .log disponibles en el directorio ordenados por fecha."""
-    files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".log")]
+    files = [
+        os.path.join(directory, f)
+        for f in os.listdir(directory)
+        if f.endswith(".log")
+        and os.path.isfile(os.path.join(directory, f))
+        and extract_date_from_filename(f)
+    ]
     # Ordenar por la fecha contenida en el nombre o lexicograficamente
     files.sort(key=lambda f: extract_date_from_filename(f) or os.path.basename(f))
     return files
@@ -29,7 +41,7 @@ def find_log_file_by_date(directory: str, date_str: str) -> str | None:
     """Busca un archivo de log especifico para la fecha indicada (YYYY-MM-DD)."""
     expected_name = f"{date_str}.log"
     direct_path = os.path.join(directory, expected_name)
-    if os.path.exists(direct_path):
+    if os.path.isfile(direct_path):
         return direct_path
 
     # Busqueda flexible

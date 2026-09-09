@@ -22,13 +22,23 @@ class FakeSAPProcessor(BaseActionProcessor):
 
 
 def operacion(mensaje: str) -> list[dict]:
-    return [{"timestamp": "2026-09-01T00:00:00Z", "level": "INFO",
-             "message": mensaje, "full_line": mensaje}]
+    return [
+        {
+            "timestamp": "2026-09-01T00:00:00Z",
+            "level": "INFO",
+            "message": mensaje,
+            "full_line": mensaje,
+        }
+    ]
 
 
 def test_el_registro_por_defecto_trae_admanager_resetuser():
     registry = build_default_registry()
-    operations = {"aaa1": operacion("GET /v3/users_admin/resetuser?sAMAccountName_requester=a&sAMAccountName_target=b 200")}
+    operations = {
+        "aaa1": operacion(
+            "GET /v3/users_admin/resetuser?sAMAccountName_requester=a&sAMAccountName_target=b 200"
+        )
+    }
 
     records = registry.process_operations(operations)
 
@@ -57,9 +67,11 @@ def test_enabled_actions_filtra_los_procesadores_activos():
 def test_operaciones_no_reconocidas_o_vacias_se_ignoran():
     registry = build_default_registry()
 
-    records = registry.process_operations({
-        "aaa1": operacion("GET /v3/healthcheck"),
-        "bbb2": [],
-    })
+    records = registry.process_operations(
+        {
+            "aaa1": operacion("GET /v3/healthcheck"),
+            "bbb2": [],
+        }
+    )
 
     assert records == []

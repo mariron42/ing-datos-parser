@@ -24,8 +24,8 @@ from .discovery import (
 from .log_reader import LogReader
 from .pipeline import DEFAULT_ENABLED_ACTIONS, run_pipeline
 from .processors import (
-    ADManagerResetUserProcessor,
     ActionRegistry,
+    ADManagerResetUserProcessor,
     BaseActionProcessor,
     build_default_registry,
 )
